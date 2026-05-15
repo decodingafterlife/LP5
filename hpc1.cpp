@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <cstdlib> // Required for rand()
+#include <ctime>   // Required for time()
 #include <omp.h>
 
 using namespace std;
@@ -33,7 +35,7 @@ public:
             int node = q.front();
             q.pop();
 
-            cout << node << " ";
+            // cout << node << " "; // Commented out for accurate performance benchmarking
 
             for (int neighbor : adj[node]) {
                 if (!visited[neighbor]) {
@@ -63,8 +65,6 @@ public:
                 {
                     current = q.front();
                     q.pop();
-
-                    cout << "Thread " << omp_get_thread_num() << " visited " << current << endl;
                 }
 
                 // Parallel traversal of neighbors
@@ -92,7 +92,7 @@ public:
     void sequentialDFSUtil(int node, vector<bool> &visited) {
 
         visited[node] = true;
-        cout << node << " ";
+        // cout << node << " "; // Commented out for accurate performance benchmarking
 
         for (int neighbor : adj[node]) {
             if (!visited[neighbor]) {
@@ -112,7 +112,7 @@ public:
         #pragma omp critical
         {
             visited[node] = true;
-            cout << node << " ";
+            // cout << node << " "; // Commented out for accurate performance benchmarking
         }
 
         #pragma omp parallel for
@@ -133,6 +133,8 @@ public:
 };
 
 int main() {
+    // Seed the random number generator so we get different graphs every time
+    srand(time(0)); 
 
     int V, E;
 
@@ -144,50 +146,53 @@ int main() {
 
     Graph g(V);
 
-    cout << "Enter edges (u v):" << endl;
+    cout << "Generating " << E << " random edges...\n";
 
     for (int i = 0; i < E; i++) {
+        // Pick two random nodes between 0 and V-1
+        int u = rand() % V;
+        int v = rand() % V;
 
-        int u, v;
-        cin >> u >> v;
+        // Prevent a node from connecting to itself
+        while (u == v) {
+            v = rand() % V;
+        }
 
         g.addEdge(u, v);
     }
 
-    int startNode;
-
-    cout << "Enter starting vertex: ";
-    cin >> startNode;
+    int startNode = 0; // We can default the starting node to 0
+    cout << "Starting vertex: " << startNode << "\n";
 
     double start, end;
 
     // ---------------- SEQUENTIAL BFS ----------------
-    cout << "\nSequential BFS: ";
+    cout << "\nRunning Sequential BFS... ";
     start = omp_get_wtime();
     g.sequentialBFS(startNode);
     end = omp_get_wtime();
-    cout << "\nExecution Time: " << (end - start) * 1000 << " ms" << endl;
+    cout << "Time: " << (end - start) * 1000 << " ms" << endl;
 
     // ---------------- PARALLEL BFS ----------------
-    cout << "\nParallel BFS:" << endl;
+    cout << "Running Parallel BFS... ";
     start = omp_get_wtime();
     g.parallelBFS(startNode);
     end = omp_get_wtime();
-    cout << "Execution Time: " << (end - start) * 1000 << " ms" << endl;
+    cout << "Time: " << (end - start) * 1000 << " ms" << endl;
 
     // ---------------- SEQUENTIAL DFS ----------------
-    cout << "\nSequential DFS: ";
+    cout << "Running Sequential DFS... ";
     start = omp_get_wtime();
     g.sequentialDFS(startNode);
     end = omp_get_wtime();
-    cout << "\nExecution Time: " << (end - start) * 1000 << " ms" << endl;
+    cout << "Time: " << (end - start) * 1000 << " ms" << endl;
 
     // ---------------- PARALLEL DFS ----------------
-    cout << "\nParallel DFS: ";
+    cout << "Running Parallel DFS... ";
     start = omp_get_wtime();
     g.parallelDFS(startNode);
     end = omp_get_wtime();
-    cout << "\nExecution Time: " << (end - start) * 1000 << " ms" << endl;
+    cout << "Time: " << (end - start) * 1000 << " ms" << endl;
 
     return 0;
 }
